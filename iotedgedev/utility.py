@@ -1,6 +1,7 @@
 import fnmatch
 import json
 import os
+import string
 import subprocess
 import sys
 from base64 import b64decode, b64encode
@@ -85,7 +86,7 @@ class Utility:
         with open(file, "r") as file:
             content = file.read()
             if expandvars:
-                return os.path.expandvars(content)
+                return string.Template(content).safe_substitute(os.environ)
             else:
                 return content
 
@@ -166,7 +167,7 @@ class Utility:
                 content = content.replace(key, value)
 
         if expandvars:
-            content = os.path.expandvars(content)
+            content = string.Template(content).safe_substitute(os.environ)
 
         with open(dest, "w") as dest_file:
             dest_file.write(content)
