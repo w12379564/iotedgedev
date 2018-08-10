@@ -35,11 +35,12 @@ class AzureCli:
 
     def invoke_az_cli_outproc(self, args, error_message=None, stdout_io=None, stderr_io=None, suppress_output=False):
         try:
+
             if stdout_io or stderr_io:
                 process = subprocess.Popen(self.prepare_az_cli_args(args, suppress_output), stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=not self.envvars.is_posix())
             else:
                 process = subprocess.Popen(self.prepare_az_cli_args(args, suppress_output), shell=not self.envvars.is_posix())
-
+                
             stdout_data, stderr_data = process.communicate()
 
             if stderr_data and b"invalid_grant" in stderr_data:
@@ -240,16 +241,18 @@ class AzureCli:
 
         return result
 
-    def apply_configuration(self, device_id, connection_string, hub_name, config):
+    def set_modules(self, device_id, connection_string, hub_name, config):
         self.output.status(f("Deploying '{config}' to '{device_id}'..."))
 
-        return self.invoke_az_cli_outproc(["iot", "hub", "apply-configuration", "-d", device_id, "-n", hub_name, "-k", config, "-l", connection_string], error_message=f("Failed to deploy '{config}' to '{device_id}'..."), suppress_output=True)
+        return self.invoke_az_cli_outproc(["iot", "edge", "set-modules", "-d", device_id, "-n", hub_name, "-k", config, "-l", connection_string], error_message=f("Failed to deploy '{config}' to '{device_id}'..."), suppress_output=True)
+
+    def monitor_events(self, device_id, connection_string, hub_name, timeout=300):
+        return self.invoke_az_cli_outproc(["iot", "hub", "monitor-events", "-d", device_id, "-n", hub_name, "-l", connection_string, '-t', str(timeout)], error_message=f("Failed to start monitoring events."), suppress_output=False)
 
     def get_free_iothub(self):
         with output_io_cls() as io:
 
-            result = self.invoke_az_cli_outproc(["iot", "hub", "list"],
-                                                f("Could not list IoT Hubs in subscription."), stdout_io=io)
+            result = self.invoke_az_cli_outproc(["iot", "hub", "list"], f("Could not list IoT Hubs in subscription."), stdout_io=io)
             if result:
                 out_string = io.getvalue()
                 data = json.loads(out_string)
